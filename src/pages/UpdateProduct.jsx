@@ -1,24 +1,15 @@
-import React, { useState } from 'react';
-import { useDispatch } from 'react-redux';
-import { addProduct } from '../redux/productSlice';
-import { useNavigate } from 'react-router-dom';
-import { green_color, text_white } from '../Utils/color';
+import React, { useState, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { updateProduct } from '../redux/productSlice';
+import { useNavigate, useParams } from 'react-router-dom';
 
-const AddProduct = () => {
+const UpdateProduct = () => {
+  const { id } = useParams();
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const products = useSelector((state) => state.products.products);
 
-  const [product, setProduct] = useState({
-    id: Date.now(),
-    name: '',
-    category: '',
-    unit: '',
-    expiry: '',
-    materials: [],
-    totalCost: 0,
-    imageUrl: '',
-  });
-
+  const [product, setProduct] = useState(null);
   const [material, setMaterial] = useState({
     name: '',
     unit: '',
@@ -27,20 +18,16 @@ const AddProduct = () => {
     tax: 0,
     totalAmount: 0,
   });
+  const [editeditingMaterialIndex, setEditingMaterialIndex] = useState(null);
+  const [imageUrl, setImageUrl] = useState('');
 
-  const handleImageUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setProduct((prev) => ({
-          ...prev,
-          imageUrl: reader.result, 
-        }));
-      };
-      reader.readAsDataURL(file);
+  useEffect(() => {
+    const existingProduct = products.find((prod) => prod.id === parseInt(id, 10));
+    if (existingProduct) {
+      setProduct(existingProduct);
+      setImageUrl(existingProduct.imageUrl || '');
     }
-  };
+  }, [id, products]);
 
   const handleAddMaterial = () => {
     const newMaterial = {
@@ -56,15 +43,39 @@ const AddProduct = () => {
     setMaterial({ name: '', unit: '', quantity: 0, price: 0, tax: 0, totalAmount: 0 });
   };
 
+  const handleDeleteMaterial = (index) => {
+    const materialToDelete = product.materials[index];
+    const updatedMaterials = product.materials.filter((_, i) => i !== index);
+    setProduct((prev) => ({
+      ...prev,
+      materials: updatedMaterials,
+      totalCost: prev.totalCost - materialToDelete.totalAmount,
+    }));
+  };
+
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImageUrl(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
-    dispatch(addProduct(product));
+    const updatedProduct = { ...product, imageUrl };
+    dispatch(updateProduct(updatedProduct));
     navigate('/');
   };
 
+  if (!product) return <div>Loading...</div>;
+
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-6">Add New Product</h1>
+      <h1 className="text-2xl font-bold mb-6">Update Product</h1>
       <form onSubmit={handleSubmit} className="space-y-6">
         <label className="block">
           <span className="text-gray-700">Name</span>
@@ -121,8 +132,9 @@ const AddProduct = () => {
           />
         </label>
 
+        {/* Image upload */}
         <label className="block">
-          <span className="text-gray-700">Product Image</span>
+          <span className="text-gray-700">Upload Image</span>
           <input
             type="file"
             accept="image/*"
@@ -130,8 +142,51 @@ const AddProduct = () => {
             className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
           />
         </label>
+        {imageUrl && (
+          <div className="mt-4">
+            <img src={imageUrl} alt="Product" className="w-32 h-32 object-cover" />
+          </div>
+        )}
 
         <h2 className="text-xl font-semibold mt-6">Materials</h2>
+
+        {product.materials.length > 0 && (
+          <div className="mb-4">
+            <h3 className="text-lg font-semibold">Added Materials</h3>
+            <table className="w-full border-collapse border border-gray-300 mt-2">
+              <thead>
+                <tr>
+                  <th className="border border-gray-300 p-2">Material Name</th>
+                  <th className="border border-gray-300 p-2">Unit</th>
+                  <th className="border border-gray-300 p-2">Quantity</th>
+                  <th className="border border-gray-300 p-2">Price</th>
+                  <th className="border border-gray-300 p-2">Total</th>
+                  <th className="border border-gray-300 p-2">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {product.materials.map((mat, index) => (
+                  <tr key={index}>
+                    <td className="border border-gray-300 p-2">{mat.name}</td>
+                    <td className="border border-gray-300 p-2">{mat.unit}</td>
+                    <td className="border border-gray-300 p-2">{mat.quantity}</td>
+                    <td className="border border-gray-300 p-2">Rs. {mat.price.toFixed(2)}</td>
+                    <td className="border border-gray-300 p-2">Rs. {mat.totalAmount.toFixed(2)}</td>
+                    <td className="border border-gray-300 p-2">
+                      <button
+                        onClick={() => handleDeleteMaterial(index)}
+                        className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
         <label className="block">
           <span className="text-gray-700">Material Name</span>
           <input
@@ -176,13 +231,13 @@ const AddProduct = () => {
           <button
             type="button"
             onClick={handleAddMaterial}
-            className={`bg-red-600 ${text_white} px-4 py-2 rounded hover:bg-blue-600`}
+            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
           >
             Add Material
           </button>
           <button
             type="submit"
-            className={`${green_color} ${text_white} px-4 py-2 rounded hover:bg-green-600`}
+            className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
           >
             Save Product
           </button>
@@ -192,4 +247,4 @@ const AddProduct = () => {
   );
 };
 
-export default AddProduct;
+export default UpdateProduct;
