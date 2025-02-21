@@ -18,14 +18,18 @@ function ProductList() {
           products.map(product => (
             <div key={product.id} className="border border-gray-200 rounded-lg shadow-lg overflow-hidden">
               <Link to={`/update/${product.id}`} className="block hover:bg-gray-50">
+              
                 <div className="relative">
                   <img src={product.imageUrl} alt={product.name} className="w-full h-48 object-cover" />
                   <div className="p-4">
                     <h3 className="text-xl font-semibold text-gray-800 truncate">{product.name}</h3>
                     <p className="text-gray-600">{product.category}</p>
                     <p className="mt-2 text-lg font-semibold text-green-600">Rs. {product.totalCost.toFixed(2)}</p>
+
                     <div className="mt-2 text-sm text-gray-500">
-                      <p>{product.materials.length} materials</p>
+                      <p>{product.materials.length} materials
+
+                      </p>
                     </div>
                   </div>
                 </div>
